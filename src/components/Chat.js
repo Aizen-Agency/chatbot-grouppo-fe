@@ -29,6 +29,16 @@ const Chat = () => {
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
 
+  const deleteSession = async () => {
+    if (socket) {
+      try {
+        await axios.delete(`https://vangelis-1d9a0def0dc8.herokuapp.com/api/sessions/${socket.id}`);
+      } catch (error) {
+        console.error('Error deleting session:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     const newSocket = io('https://vangelis-1d9a0def0dc8.herokuapp.com', {
       reconnectionAttempts: 5,
@@ -67,7 +77,15 @@ const Chat = () => {
       setError(data.message || 'An error occurred');
     });
 
+    // Add beforeunload event listener
+    const handleBeforeUnload = () => {
+      deleteSession();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      deleteSession();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       newSocket.close();
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
@@ -134,6 +152,17 @@ const Chat = () => {
     setError(null);
   };
 
+  const handleCloseChat = () => {
+    deleteSession();
+    window.close();
+  };
+
+  const handleDeleteChat = () => {
+    deleteSession();
+    setMessages([initialBotMessage]);
+    setShowQuickReplies(true);
+  };
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -154,10 +183,10 @@ const Chat = () => {
             <IconButton size="small">
               <LinkIcon />
             </IconButton>
-            <IconButton size="small">
+            <IconButton size="small" onClick={handleDeleteChat}>
               <DeleteIcon />
             </IconButton>
-            <IconButton size="small">
+            <IconButton size="small" onClick={handleCloseChat}>
               <CloseIcon />
             </IconButton>
           </Box>

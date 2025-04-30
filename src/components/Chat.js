@@ -167,6 +167,7 @@ const Chat = () => {
     return <LoadingSpinner />;
   }
 
+  
   return (
     <Container maxWidth="md" sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Paper elevation={0} sx={{ flex: 1, display: 'flex', flexDirection: 'column', borderRadius: 0, mb: 1 }}>

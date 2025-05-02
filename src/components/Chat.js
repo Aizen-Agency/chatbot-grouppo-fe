@@ -18,6 +18,35 @@ const initialBotMessage = {
   content: 'Γεια σου! Είμαι ο Lucca, ο ψηφιακός βοηθός της Gruppo Cucine. Πώς μπορώ να σε βοηθήσω;',
 };
 
+// Add TypingIndicator component
+const TypingIndicator = () => {
+  const [dots, setDots] = useState('');
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDots(prev => {
+        if (prev.length >= 3) return '';
+        return prev + '.';
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5,
+      }}
+    >
+      <Typography>Assistant is typing</Typography>
+      <Typography sx={{ minWidth: '24px' }}>{dots}</Typography>
+    </Box>
+  );
+};
+
 const Chat = () => {
   const [messages, setMessages] = useState([initialBotMessage]);
   const [input, setInput] = useState('');
@@ -297,7 +326,7 @@ const Chat = () => {
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
               }}
             >
-              <Typography>Assistant is typing...</Typography>
+              <TypingIndicator />
             </Box>
           )}
           <div ref={messagesEndRef} />

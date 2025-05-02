@@ -41,7 +41,7 @@ const TypingIndicator = () => {
         gap: 0.5,
       }}
     >
-      <Typography>Assistant is typing</Typography>
+      <Typography>typing</Typography>
       <Typography sx={{ minWidth: '24px' }}>{dots}</Typography>
     </Box>
   );

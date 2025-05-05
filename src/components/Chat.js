@@ -47,6 +47,56 @@ const TypingIndicator = () => {
   );
 };
 
+// Custom hook to listen to host app's viewport information
+const useHostViewport = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 600);
+  const [isHostMobile, setIsHostMobile] = useState(null);
+
+  useEffect(() => {
+    // Listen for messages from host app
+    const handleMessage = (event) => {
+      // Verify the origin of the message for security
+      if (event.origin !== window.location.origin) return;
+
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'VIEWPORT_INFO') {
+          setIsHostMobile(data.isMobile);
+        }
+      } catch (error) {
+        console.error('Error parsing viewport info:', error);
+      }
+    };
+
+    // Request viewport info from host app
+    const requestViewportInfo = () => {
+      if (window.parent !== window) {
+        window.parent.postMessage(JSON.stringify({
+          type: 'REQUEST_VIEWPORT_INFO'
+        }), '*');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    requestViewportInfo();
+
+    // Fallback to window resize if no host info is received
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 600);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  // Use host's mobile info if available, otherwise fallback to window width
+  return isHostMobile !== null ? isHostMobile : isMobile;
+};
+
 const Chat = () => {
   const [messages, setMessages] = useState([initialBotMessage]);
   const [input, setInput] = useState('');
@@ -60,10 +110,12 @@ const Chat = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [sessionEnded, setSessionEnded] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 600);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
   const inputRef = useRef(null);
+
+  // Use the custom hook instead of local state
+  const isMobile = useHostViewport();
 
   const deleteSession = async () => {
     if (socket) {

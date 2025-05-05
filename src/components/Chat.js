@@ -198,15 +198,16 @@ const Chat = () => {
 
   
   return (
-    <Container maxWidth="md" sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Paper elevation={0} sx={{ flex: 1, display: 'flex', flexDirection: 'column', borderRadius: 0, mb: 1 }}>
+    <Container maxWidth="md" sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', p: 0 }}>
+      <Paper elevation={3} sx={{ flex: 1, display: 'flex', flexDirection: 'column', borderRadius: 3, height: '100%', minHeight: 0, overflow: 'hidden' }}>
         <Box sx={{ 
           p: 2, 
           bgcolor: 'white', 
           borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          minHeight: 40
         }}>
           {/* <Typography variant="h6" sx={{ fontWeight: 500 }}>Lucca</Typography> */}
           {/* <Box>
@@ -221,10 +222,9 @@ const Chat = () => {
             </IconButton>
           </Box> */}
         </Box>
-        
         <Box sx={{ 
           flex: 1, 
-          overflow: 'auto', 
+          overflowY: 'auto', 
           p: 2,
           display: 'flex',
           flexDirection: 'column',
@@ -331,7 +331,6 @@ const Chat = () => {
           )}
           <div ref={messagesEndRef} />
         </Box>
-
         <Box sx={{ p: 2, bgcolor: 'white', borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <TextField
@@ -370,7 +369,6 @@ const Chat = () => {
           </Box>
         </Box>
       </Paper>
-
       <Box sx={{ 
         textAlign: 'center', 
         py: 1,
@@ -378,7 +376,9 @@ const Chat = () => {
         flexDirection: 'column',
         alignItems: 'center',
         gap: 0.5,
-        bgcolor: 'white'
+        bgcolor: 'white',
+        borderRadius: 3,
+        mt: 1
       }}>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           AI may generate inaccurate information
@@ -393,7 +393,6 @@ const Chat = () => {
           Powered by Agenty
         </Typography>
       </Box>
-
       <Snackbar
         open={!!error}
         autoHideDuration={6000}

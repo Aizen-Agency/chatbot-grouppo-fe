@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, TextField, Button, Paper, Typography, Container, Alert, Snackbar, IconButton } from '@mui/material';
+import { Box, TextField, Button, Paper, Typography, Container, Alert, Snackbar, IconButton, Fab } from '@mui/material';
 import io from 'socket.io-client';
 import axios from 'axios';
 import LoadingSpinner from './LoadingSpinner';
 import CloseIcon from '@mui/icons-material/Close';
 import RemoveIcon from '@mui/icons-material/Remove';
+import ChatIcon from '@mui/icons-material/Chat';
 
 const quickReplies = [
   'Θέλω να σχεδιάσω κουζίνα',
@@ -59,6 +60,10 @@ const Chat = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [sessionEnded, setSessionEnded] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 600);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+  const inputRef = useRef(null);
 
   const deleteSession = async () => {
     if (socket) {
@@ -183,13 +188,29 @@ const Chat = () => {
     setError(null);
   };
 
+  useEffect(() => {
+    const handleResize = () => {
+      const newHeight = window.innerHeight;
+      setWindowHeight(newHeight);
+      // If height decreased significantly, keyboard is likely visible
+      if (newHeight < windowHeight - 100) {
+        setKeyboardVisible(true);
+      } else {
+        setKeyboardVisible(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [windowHeight]);
+
   if (!isVisible) return null;
 
   // Header bar with controls
   const HeaderBar = (
     <Box
       sx={{
-        width: isMinimized ? 300 : 420,
+        width: isMobile ? '100%' : 300,
         height: 40,
         bgcolor: 'white',
         borderBottom: '1px solid rgba(0,0,0,0.12)',
@@ -197,8 +218,8 @@ const Chat = () => {
         alignItems: 'center',
         justifyContent: 'space-between',
         px: 2,
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
+        borderTopLeftRadius: isMobile ? 12 : 12,
+        borderTopRightRadius: isMobile ? 12 : 12,
         boxShadow: isMinimized ? 3 : 0,
         cursor: isMinimized ? 'pointer' : 'default',
       }}
@@ -214,11 +235,25 @@ const Chat = () => {
       <Typography variant="subtitle1" sx={{ fontWeight: 500, fontSize: '1rem' }}>
         Lucca
       </Typography>
-      <Box>
-        <IconButton size="small" onClick={e => { e.stopPropagation(); setIsMinimized(true); }}>
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <IconButton 
+          size="small" 
+          onClick={e => { 
+            e.stopPropagation(); 
+            setIsMinimized(true); 
+          }}
+        >
           <RemoveIcon fontSize="small" />
         </IconButton>
-        <IconButton size="small" onClick={async e => { e.stopPropagation(); await deleteSession(); setIsMinimized(true); setSessionEnded(true); }}>
+        <IconButton 
+          size="small" 
+          onClick={async e => { 
+            e.stopPropagation(); 
+            await deleteSession(); 
+            setIsMinimized(true); 
+            setSessionEnded(true); 
+          }}
+        >
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -235,7 +270,29 @@ const Chat = () => {
           zIndex: 1300,
         }}
       >
-        {HeaderBar}
+        {isMobile ? (
+          <Fab
+            color="primary"
+            onClick={async () => {
+              if (sessionEnded) {
+                setMessages([initialBotMessage]);
+                setShowQuickReplies(true);
+                setSessionEnded(false);
+              }
+              setIsMinimized(false);
+            }}
+            sx={{
+              bgcolor: '#8B5CF6',
+              '&:hover': {
+                bgcolor: '#7C3AED',
+              },
+            }}
+          >
+            <ChatIcon />
+          </Fab>
+        ) : (
+          HeaderBar
+        )}
       </Box>
     );
   }
@@ -254,7 +311,26 @@ const Chat = () => {
       }}
     >
       <Container maxWidth="md" sx={{ p: 0 }}>
-        <Paper elevation={3} sx={{ width: 420, height: 470, display: 'flex', flexDirection: 'column', borderRadius: 3, overflow: 'hidden', fontSize: '0.85rem' }}>
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            width: isMobile ? '100vw' : 420,
+            height: isMobile ? '50vh' : 470,
+            display: 'flex',
+            flexDirection: 'column',
+            borderRadius: isMobile ? '12px 12px 0 0' : 3,
+            overflow: 'hidden',
+            fontSize: '0.85rem',
+            position: isMobile ? 'fixed' : 'relative',
+            top: isMobile ? 'auto' : 'auto',
+            left: isMobile ? 0 : 'auto',
+            right: isMobile ? 0 : 'auto',
+            bottom: isMobile ? (keyboardVisible ? '0' : '0') : 'auto',
+            m: isMobile ? 0 : 'auto',
+            transform: isMobile && keyboardVisible ? 'translateY(-50%)' : 'none',
+            transition: 'transform 0.3s ease-in-out',
+          }}
+        >
           {HeaderBar}
           <Box sx={{ 
             flex: 1, 
@@ -365,9 +441,16 @@ const Chat = () => {
             )}
             <div ref={messagesEndRef} />
           </Box>
-          <Box sx={{ p: 2, bgcolor: 'white', borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
+          <Box sx={{ 
+            p: 2, 
+            bgcolor: 'white', 
+            borderTop: '1px solid rgba(0, 0, 0, 0.12)',
+            position: isMobile ? 'sticky' : 'relative',
+            bottom: 0,
+          }}>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <TextField
+                inputRef={inputRef}
                 fullWidth
                 value={input}
                 onChange={handleInputChange}
@@ -403,32 +486,34 @@ const Chat = () => {
             </Box>
           </Box>
         </Paper>
-        <Box sx={{ 
-          textAlign: 'center', 
-          py: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 0.5,
-          bgcolor: 'white',
-          borderRadius: 3,
-          mt: 1,
-          width: 420,
-          fontSize: '0.85rem'
-        }}>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            AI may generate inaccurate information
-          </Typography>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: '#8B5CF6',
-              fontWeight: 500
-            }}
-          >
-            Powered by Agenty
-          </Typography>
-        </Box>
+        {!isMobile && (
+          <Box sx={{ 
+            textAlign: 'center', 
+            py: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 0.5,
+            bgcolor: 'white',
+            borderRadius: 3,
+            mt: 1,
+            width: 420,
+            fontSize: '0.85rem'
+          }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              AI may generate inaccurate information
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#8B5CF6',
+                fontWeight: 500
+              }}
+            >
+              Powered by Agenty
+            </Typography>
+          </Box>
+        )}
         <Snackbar
           open={!!error}
           autoHideDuration={6000}

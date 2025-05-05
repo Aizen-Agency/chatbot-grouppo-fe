@@ -111,7 +111,7 @@ const Chat = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+  const [initialWindowHeight] = useState(window.innerHeight);
   const inputRef = useRef(null);
 
   // Use the custom hook instead of local state
@@ -243,9 +243,8 @@ const Chat = () => {
   useEffect(() => {
     const handleResize = () => {
       const newHeight = window.innerHeight;
-      setWindowHeight(newHeight);
-      // If height decreased significantly, keyboard is likely visible
-      if (newHeight < windowHeight - 100) {
+      // If height decreased significantly from initial, keyboard is likely visible
+      if (isMobile && initialWindowHeight - newHeight > 100) {
         setKeyboardVisible(true);
       } else {
         setKeyboardVisible(false);
@@ -254,7 +253,7 @@ const Chat = () => {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [windowHeight]);
+  }, [initialWindowHeight, isMobile]);
 
   if (!isVisible) return null;
 
@@ -262,7 +261,7 @@ const Chat = () => {
   const HeaderBar = (
     <Box
       sx={{
-        width: isMobile ? '100%' : 300,
+        width: '100%', // Always fill parent
         height: 40,
         bgcolor: 'white',
         borderBottom: '1px solid rgba(0,0,0,0.12)',
@@ -287,12 +286,21 @@ const Chat = () => {
       <Typography variant="subtitle1" sx={{ fontWeight: 500, fontSize: '1rem' }}>
         Lucca
       </Typography>
-      <Box sx={{ display: 'flex', gap: 1 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        gap: 1,
+        ml: 'auto', // Push to the right
+      }}>
         <IconButton 
           size="small" 
           onClick={e => { 
             e.stopPropagation(); 
             setIsMinimized(true); 
+          }}
+          sx={{
+            minWidth: '32px',
+            width: '32px',
+            height: '32px'
           }}
         >
           <RemoveIcon fontSize="small" />
@@ -304,6 +312,11 @@ const Chat = () => {
             await deleteSession(); 
             setIsMinimized(true); 
             setSessionEnded(true); 
+          }}
+          sx={{
+            minWidth: '32px',
+            width: '32px',
+            height: '32px'
           }}
         >
           <CloseIcon fontSize="small" />

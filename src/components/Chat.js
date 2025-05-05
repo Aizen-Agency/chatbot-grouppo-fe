@@ -208,8 +208,8 @@ const Chat = () => {
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 500 }}>Lucca</Typography>
-          <Box>
+          {/* <Typography variant="h6" sx={{ fontWeight: 500 }}>Lucca</Typography> */}
+          {/* <Box>
             <IconButton size="small">
               <LinkIcon />
             </IconButton>
@@ -219,7 +219,7 @@ const Chat = () => {
             <IconButton size="small" onClick={handleCloseChat}>
               <CloseIcon />
             </IconButton>
-          </Box>
+          </Box> */}
         </Box>
         
         <Box sx={{ 

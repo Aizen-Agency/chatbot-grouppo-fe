@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, TextField, Button, Paper, Typography, Container, Alert, Snackbar, IconButton } from '@mui/material';
-import LinkIcon from '@mui/icons-material/Link';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CloseIcon from '@mui/icons-material/Close';
 import io from 'socket.io-client';
 import axios from 'axios';
 import LoadingSpinner from './LoadingSpinner';
+import CloseIcon from '@mui/icons-material/Close';
+import RemoveIcon from '@mui/icons-material/Remove';
 
 const quickReplies = [
   'Θέλω να σχεδιάσω κουζίνα',
@@ -57,6 +56,9 @@ const Chat = () => {
   const [showQuickReplies, setShowQuickReplies] = useState(true);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [sessionEnded, setSessionEnded] = useState(false);
 
   const deleteSession = async () => {
     if (socket) {
@@ -181,229 +183,264 @@ const Chat = () => {
     setError(null);
   };
 
-  const handleCloseChat = () => {
-    deleteSession();
-    window.close();
-  };
+  if (!isVisible) return null;
 
-  const handleDeleteChat = () => {
-    deleteSession();
-    setMessages([initialBotMessage]);
-    setShowQuickReplies(true);
-  };
+  // Header bar with controls
+  const HeaderBar = (
+    <Box
+      sx={{
+        width: isMinimized ? 300 : 420,
+        height: 40,
+        bgcolor: 'white',
+        borderBottom: '1px solid rgba(0,0,0,0.12)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        px: 2,
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        boxShadow: isMinimized ? 3 : 0,
+        cursor: isMinimized ? 'pointer' : 'default',
+      }}
+      onClick={isMinimized ? async () => {
+        if (sessionEnded) {
+          setMessages([initialBotMessage]);
+          setShowQuickReplies(true);
+          setSessionEnded(false);
+        }
+        setIsMinimized(false);
+      } : undefined}
+    >
+      <Typography variant="subtitle1" sx={{ fontWeight: 500, fontSize: '1rem' }}>
+        Lucca
+      </Typography>
+      <Box>
+        <IconButton size="small" onClick={e => { e.stopPropagation(); setIsMinimized(true); }}>
+          <RemoveIcon fontSize="small" />
+        </IconButton>
+        <IconButton size="small" onClick={async e => { e.stopPropagation(); await deleteSession(); setIsMinimized(true); setSessionEnded(true); }}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Box>
+    </Box>
+  );
+
+  if (isMinimized) {
+    return (
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: 20,
+          right: 20,
+          zIndex: 1300,
+        }}
+      >
+        {HeaderBar}
+      </Box>
+    );
+  }
 
   if (isLoading) {
     return <LoadingSpinner />;
   }
 
-  
   return (
-    <Container maxWidth="md" sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', p: 0 }}>
-      <Paper elevation={3} sx={{ flex: 1, display: 'flex', flexDirection: 'column', borderRadius: 3, height: '100%', minHeight: 0, overflow: 'hidden' }}>
-        <Box sx={{ 
-          p: 2, 
-          bgcolor: 'white', 
-          borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          minHeight: 40
-        }}>
-          {/* <Typography variant="h6" sx={{ fontWeight: 500 }}>Lucca</Typography> */}
-          {/* <Box>
-            <IconButton size="small">
-              <LinkIcon />
-            </IconButton>
-            <IconButton size="small" onClick={handleDeleteChat}>
-              <DeleteIcon />
-            </IconButton>
-            <IconButton size="small" onClick={handleCloseChat}>
-              <CloseIcon />
-            </IconButton>
-          </Box> */}
-        </Box>
-        <Box sx={{ 
-          flex: 1, 
-          overflowY: 'auto', 
-          p: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-          bgcolor: '#f5f5f5',
-          minHeight: 0
-        }}>
-          {messages.map((message, index) => (
-            <Box
-              key={index}
-              sx={{
-                alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '70%',
-              }}
-            >
-              {message.role === 'assistant' && index === 0 && showQuickReplies && (
-                <Box sx={{ mb: 2 }}>
+    <Box
+      sx={{
+        position: 'fixed',
+        bottom: 20,
+        right: 20,
+        zIndex: 1300,
+      }}
+    >
+      <Container maxWidth="md" sx={{ p: 0 }}>
+        <Paper elevation={3} sx={{ width: 420, height: 470, display: 'flex', flexDirection: 'column', borderRadius: 3, overflow: 'hidden', fontSize: '0.85rem' }}>
+          {HeaderBar}
+          <Box sx={{ 
+            flex: 1, 
+            minHeight: 0,
+            overflowY: 'auto', 
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            bgcolor: '#f5f5f5',
+          }}>
+            {messages.map((message, index) => (
+              <Box
+                key={index}
+                sx={{
+                  alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: '70%',
+                }}
+              >
+                {message.role === 'assistant' && index === 0 && showQuickReplies && (
+                  <Box sx={{ mb: 2 }}>
+                    <Box
+                      sx={{
+                        bgcolor: 'white',
+                        p: 2,
+                        borderRadius: 2,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        display: 'flex',
+                        gap: 2,
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      <Box
+                        component="div"
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          bgcolor: '#8B5CF6',
+                          borderRadius: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Typography sx={{ color: 'white' }}>📄</Typography>
+                      </Box>
+                      <Typography>{message.content}</Typography>
+                    </Box>
+                    
+                    <Typography sx={{ mt: 2, mb: 1, color: 'text.secondary' }}>
+                      Αυτές είναι οι πιο συχνές ερωτήσεις:
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {quickReplies.map((reply, i) => (
+                        <Button
+                          key={i}
+                          variant="outlined"
+                          sx={{
+                            color: 'text.primary',
+                            borderColor: 'rgba(0, 0, 0, 0.12)',
+                            bgcolor: 'white',
+                            justifyContent: 'flex-start',
+                            textTransform: 'none',
+                            p: 2,
+                            borderRadius: 3,
+                            '&:hover': {
+                              bgcolor: 'rgba(0, 0, 0, 0.04)',
+                              borderColor: 'rgba(0, 0, 0, 0.12)',
+                            }
+                          }}
+                          onClick={() => handleQuickReply(reply)}
+                        >
+                          {reply}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+                {(message.role !== 'assistant' || index !== 0) && (
                   <Box
                     sx={{
-                      bgcolor: 'white',
+                      bgcolor: message.role === 'user' ? '#8B5CF6' : 'white',
+                      color: message.role === 'user' ? 'white' : 'text.primary',
                       p: 2,
                       borderRadius: 2,
                       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      display: 'flex',
-                      gap: 2,
-                      alignItems: 'flex-start',
                     }}
                   >
-                    <Box
-                      component="div"
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        bgcolor: '#8B5CF6',
-                        borderRadius: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Typography sx={{ color: 'white' }}>📄</Typography>
-                    </Box>
                     <Typography>{message.content}</Typography>
                   </Box>
-                  
-                  <Typography sx={{ mt: 2, mb: 1, color: 'text.secondary' }}>
-                    Αυτές είναι οι πιο συχνές ερωτήσεις:
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {quickReplies.map((reply, i) => (
-                      <Button
-                        key={i}
-                        variant="outlined"
-                        sx={{
-                          color: 'text.primary',
-                          borderColor: 'rgba(0, 0, 0, 0.12)',
-                          bgcolor: 'white',
-                          justifyContent: 'flex-start',
-                          textTransform: 'none',
-                          p: 2,
-                          borderRadius: 3,
-                          '&:hover': {
-                            bgcolor: 'rgba(0, 0, 0, 0.04)',
-                            borderColor: 'rgba(0, 0, 0, 0.12)',
-                          }
-                        }}
-                        onClick={() => handleQuickReply(reply)}
-                      >
-                        {reply}
-                      </Button>
-                    ))}
-                  </Box>
-                </Box>
-              )}
-              {(message.role !== 'assistant' || index !== 0) && (
-                <Box
-                  sx={{
-                    bgcolor: message.role === 'user' ? '#8B5CF6' : 'white',
-                    color: message.role === 'user' ? 'white' : 'text.primary',
-                    p: 2,
-                    borderRadius: 2,
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  }}
-                >
-                  <Typography>{message.content}</Typography>
-                </Box>
-              )}
-            </Box>
-          ))}
-          {isTyping && (
-            <Box
-              sx={{
-                alignSelf: 'flex-start',
-                maxWidth: '70%',
-                bgcolor: 'white',
-                p: 2,
-                borderRadius: 2,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              }}
-            >
-              <TypingIndicator />
-            </Box>
-          )}
-          <div ref={messagesEndRef} />
-        </Box>
-        <Box sx={{ p: 2, bgcolor: 'white', borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField
-              fullWidth
-              value={input}
-              onChange={handleInputChange}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              variant="outlined"
-              size="small"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 3,
-                }
-              }}
-            />
-            <Button
-              variant="contained"
-              onClick={handleSend}
-              disabled={!input.trim()}
-              sx={{
-                bgcolor: '#8B5CF6',
-                borderRadius: 2,
-                minWidth: 'auto',
-                px: 3,
-                '&:hover': {
-                  bgcolor: '#7C3AED',
-                },
-                '&.Mui-disabled': {
-                  bgcolor: 'rgba(139, 92, 246, 0.5)',
-                }
-              }}
-            >
-              Send
-            </Button>
+                )}
+              </Box>
+            ))}
+            {isTyping && (
+              <Box
+                sx={{
+                  alignSelf: 'flex-start',
+                  maxWidth: '70%',
+                  bgcolor: 'white',
+                  p: 2,
+                  borderRadius: 2,
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                }}
+              >
+                <TypingIndicator />
+              </Box>
+            )}
+            <div ref={messagesEndRef} />
           </Box>
+          <Box sx={{ p: 2, bgcolor: 'white', borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                fullWidth
+                value={input}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder="Type your message..."
+                variant="outlined"
+                size="small"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                  }
+                }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleSend}
+                disabled={!input.trim()}
+                sx={{
+                  bgcolor: '#8B5CF6',
+                  borderRadius: 2,
+                  minWidth: 'auto',
+                  px: 3,
+                  '&:hover': {
+                    bgcolor: '#7C3AED',
+                  },
+                  '&.Mui-disabled': {
+                    bgcolor: 'rgba(139, 92, 246, 0.5)',
+                  }
+                }}
+              >
+                Send
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 0.5,
+          bgcolor: 'white',
+          borderRadius: 3,
+          mt: 1,
+          width: 420,
+          fontSize: '0.85rem'
+        }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            AI may generate inaccurate information
+          </Typography>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: '#8B5CF6',
+              fontWeight: 500
+            }}
+          >
+            Powered by Agenty
+          </Typography>
         </Box>
-      </Paper>
-      <Box sx={{ 
-        textAlign: 'center', 
-        py: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 0.5,
-        bgcolor: 'white',
-        borderRadius: 3,
-        mt: 1
-      }}>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          AI may generate inaccurate information
-        </Typography>
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            color: '#8B5CF6',
-            fontWeight: 500
-          }}
+        <Snackbar
+          open={!!error}
+          autoHideDuration={6000}
+          onClose={handleCloseError}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          Powered by Agenty
-        </Typography>
-      </Box>
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={handleCloseError}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
-    </Container>
+          <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+            {error}
+          </Alert>
+        </Snackbar>
+      </Container>
+    </Box>
   );
 };
 

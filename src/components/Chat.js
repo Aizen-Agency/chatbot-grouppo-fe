@@ -47,6 +47,33 @@ const TypingIndicator = () => {
   );
 };
 
+// Add TypedMessage component for letter-by-letter animation
+const TypedMessage = ({ content }) => {
+  const [displayedContent, setDisplayedContent] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
+  const indexRef = useRef(0);
+
+  useEffect(() => {
+    if (indexRef.current < content.length) {
+      const timer = setTimeout(() => {
+        setDisplayedContent(prev => prev + content[indexRef.current]);
+        indexRef.current += 1;
+      }, 30); // Adjust typing speed here (lower = faster)
+
+      return () => clearTimeout(timer);
+    } else {
+      setIsTyping(false);
+    }
+  }, [displayedContent, content]);
+
+  return (
+    <Typography>
+      {displayedContent}
+      {isTyping && <span className="cursor">|</span>}
+    </Typography>
+  );
+};
+
 // Custom hook to listen to host app's viewport information
 const useHostViewport = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 600);
@@ -411,97 +438,38 @@ const Chat = () => {
               <Box
                 key={index}
                 sx={{
-                  alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: '70%',
+                  display: 'flex',
+                  justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                  mb: 2,
                 }}
               >
-                {message.role === 'assistant' && index === 0 && showQuickReplies && (
-                  <Box sx={{ mb: 2 }}>
-                    <Box
-                      sx={{
-                        bgcolor: 'white',
-                        p: 2,
-                        borderRadius: 2,
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        display: 'flex',
-                        gap: 2,
-                        alignItems: 'flex-start',
-                      }}
-                    >
-                      <Box
-                        component="div"
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          bgcolor: '#8B5CF6',
-                          borderRadius: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Typography sx={{ color: 'white' }}>📄</Typography>
-                      </Box>
-                      <Typography>{message.content}</Typography>
-                    </Box>
-                    
-                    <Typography sx={{ mt: 2, mb: 1, color: 'text.secondary' }}>
-                      Αυτές είναι οι πιο συχνές ερωτήσεις:
-                    </Typography>
-                    
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      {quickReplies.map((reply, i) => (
-                        <Button
-                          key={i}
-                          variant="outlined"
-                          sx={{
-                            color: 'text.primary',
-                            borderColor: 'rgba(0, 0, 0, 0.12)',
-                            bgcolor: 'white',
-                            justifyContent: 'flex-start',
-                            textTransform: 'none',
-                            p: 2,
-                            borderRadius: 3,
-                            '&:hover': {
-                              bgcolor: 'rgba(0, 0, 0, 0.04)',
-                              borderColor: 'rgba(0, 0, 0, 0.12)',
-                            }
-                          }}
-                          onClick={() => handleQuickReply(reply)}
-                        >
-                          {reply}
-                        </Button>
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-                {(message.role !== 'assistant' || index !== 0) && (
-                  <Box
-                    sx={{
-                      bgcolor: message.role === 'user' ? '#8B5CF6' : 'white',
-                      color: message.role === 'user' ? 'white' : 'text.primary',
-                      p: 2,
-                      borderRadius: 2,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    }}
-                  >
+                <Paper
+                  elevation={1}
+                  sx={{
+                    p: 2,
+                    maxWidth: '70%',
+                    backgroundColor: message.role === 'user' ? '#e3f2fd' : '#f5f5f5',
+                  }}
+                >
+                  {message.role === 'assistant' ? (
+                    <TypedMessage content={message.content} />
+                  ) : (
                     <Typography>{message.content}</Typography>
-                  </Box>
-                )}
+                  )}
+                </Paper>
               </Box>
             ))}
             {isTyping && (
               <Box
                 sx={{
-                  alignSelf: 'flex-start',
-                  maxWidth: '70%',
-                  bgcolor: 'white',
-                  p: 2,
-                  borderRadius: 2,
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  mb: 2,
                 }}
               >
-                <TypingIndicator />
+                <Paper elevation={1} sx={{ p: 2, backgroundColor: '#f5f5f5' }}>
+                  <TypingIndicator />
+                </Paper>
               </Box>
             )}
             <div ref={messagesEndRef} />

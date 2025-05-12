@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, TextField, Button, Paper, Typography, Container, Alert, Snackbar, IconButton, Fab } from '@mui/material';
 import io from 'socket.io-client';
-import axios from 'axios';
 import LoadingSpinner from './LoadingSpinner';
 import CloseIcon from '@mui/icons-material/Close';
 import RemoveIcon from '@mui/icons-material/Remove';
 import ChatIcon from '@mui/icons-material/Chat';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import SendIcon from '@mui/icons-material/Send';
 
 const quickReplies = [
   'Θέλω να σχεδιάσω κουζίνα',
@@ -48,23 +49,34 @@ const TypingIndicator = () => {
 };
 
 // Add TypedMessage component for letter-by-letter animation
-const TypedMessage = ({ content }) => {
-  const [displayedContent, setDisplayedContent] = useState('');
-  const [isTyping, setIsTyping] = useState(true);
+const TypedMessage = ({ content, forceShow }) => {
+  const [displayedContent, setDisplayedContent] = useState(forceShow ? content : '');
+  const [isTyping, setIsTyping] = useState(!forceShow);
   const indexRef = useRef(0);
 
   useEffect(() => {
+    if (forceShow) {
+      setDisplayedContent(content);
+      setIsTyping(false);
+      return;
+    }
     if (indexRef.current < content.length) {
       const timer = setTimeout(() => {
         setDisplayedContent(prev => prev + content[indexRef.current]);
         indexRef.current += 1;
-      }, 30); // Adjust typing speed here (lower = faster)
-
+      }, 30);
       return () => clearTimeout(timer);
     } else {
       setIsTyping(false);
     }
-  }, [displayedContent, content]);
+  }, [displayedContent, content, forceShow]);
+
+  useEffect(() => {
+    if (forceShow) {
+      setDisplayedContent(content);
+      setIsTyping(false);
+    }
+  }, [forceShow, content]);
 
   return (
     <Typography>
@@ -82,16 +94,24 @@ const useHostViewport = () => {
   useEffect(() => {
     // Listen for messages from host app
     const handleMessage = (event) => {
-      // Verify the origin of the message for security
+      // Only process messages from the expected origin
       if (event.origin !== window.location.origin) return;
 
       try {
-        const data = JSON.parse(event.data);
+        let data = event.data;
+        if (typeof data === 'string') {
+          // Only try to parse if it looks like JSON
+          if (data.startsWith('{') || data.startsWith('[')) {
+            data = JSON.parse(data);
+          } else {
+            return; // Ignore non-JSON strings
+          }
+        }
         if (data.type === 'VIEWPORT_INFO') {
           setIsHostMobile(data.isMobile);
         }
       } catch (error) {
-        console.error('Error parsing viewport info:', error);
+        // Optionally: console.warn('Ignored non-JSON message', event.data);
       }
     };
 
@@ -140,17 +160,14 @@ const Chat = () => {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [initialWindowHeight] = useState(window.innerHeight);
   const inputRef = useRef(null);
+  const [lastAnimatedBotMsgIndex, setLastAnimatedBotMsgIndex] = useState(null);
 
   // Use the custom hook instead of local state
   const isMobile = useHostViewport();
 
   const deleteSession = async () => {
     if (socket) {
-      try {
-        await axios.delete(`https://vangelis-be-72a501737d30.herokuapp.com/api/sessions/${socket.id}`);
-      } catch (error) {
-        console.error('Error deleting session:', error);
-      }
+      socket.emit('deleteSession', { sessionId: socket.id });
     }
   };
 
@@ -173,6 +190,7 @@ const Chat = () => {
     });
 
     newSocket.on('response', (data) => {
+      console.log('Received assistant response:', data.message);
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     });
 
@@ -216,6 +234,13 @@ const Chat = () => {
     scrollToBottom();
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    // Set the last bot message index to animate when a new assistant message arrives
+    if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+      setLastAnimatedBotMsgIndex(messages.length - 1);
+    }
+  }, [messages]);
+
   const handleSend = () => {
     if (input.trim() && socket) {
       socket.emit('message', { message: input });
@@ -223,15 +248,18 @@ const Chat = () => {
       setInput('');
       setShowQuickReplies(false);
       setIsTyping(true);
+      setLastAnimatedBotMsgIndex(null); // Stop animation for all bot messages
     }
   };
 
   const handleQuickReply = (reply) => {
+    console.log('Quick reply clicked:', reply, 'Socket:', !!socket);
     if (socket) {
       socket.emit('message', { message: reply });
       setMessages(prev => [...prev, { role: 'user', content: reply }]);
       setShowQuickReplies(false);
       setIsTyping(true);
+      setLastAnimatedBotMsgIndex(null); // Stop animation for all bot messages
     }
   };
 
@@ -393,6 +421,7 @@ const Chat = () => {
     return <LoadingSpinner />;
   }
 
+  console.log('Rendering messages:', messages);
   return (
     <Box
       sx={{
@@ -434,31 +463,45 @@ const Chat = () => {
             gap: 2,
             bgcolor: '#f5f5f5',
           }}>
-            {messages.map((message, index) => (
-              <Box
-                key={index}
-                sx={{
-                  display: 'flex',
-                  justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-                  mb: 2,
-                }}
-              >
-                <Paper
-                  elevation={1}
-                  sx={{
-                    p: 2,
-                    maxWidth: '70%',
-                    backgroundColor: message.role === 'user' ? '#e3f2fd' : '#f5f5f5',
-                  }}
-                >
-                  {message.role === 'assistant' ? (
-                    <TypedMessage content={message.content} />
-                  ) : (
-                    <Typography>{message.content}</Typography>
-                  )}
-                </Paper>
-              </Box>
-            ))}
+            {messages.filter(m => m && m.content).map((message, index) => {
+              const isInitialBotMessage = index === 0 && message.role === 'assistant';
+              const isLastAssistantMessage = message.role === 'assistant' && index === messages.length - 1;
+              return (
+                <React.Fragment key={index}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                      mb: 2,
+                    }}
+                  >
+                    <Paper
+                      elevation={1}
+                      sx={{
+                        p: 2,
+                        maxWidth: '70%',
+                        backgroundColor: isInitialBotMessage ? '#f5f5f5' : (message.role === 'user' ? '#e3f2fd' : '#f5f5f5'),
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 1.5,
+                      }}
+                    >
+                      {isInitialBotMessage && (
+                        <InsertDriveFileIcon sx={{ color: '#8B5CF6', mt: 0.5 }} />
+                      )}
+                      {message.role === 'assistant'
+                        ? (isTyping && isLastAssistantMessage
+                            ? <TypedMessage content={message.content} forceShow={false} />
+                            : <Typography>{message.content}</Typography>
+                          )
+                        : <Typography>{message.content}</Typography>
+                      }
+                    </Paper>
+                  </Box>
+                </React.Fragment>
+              );
+            })}
             {isTyping && (
               <Box
                 sx={{
@@ -480,42 +523,91 @@ const Chat = () => {
             borderTop: '1px solid rgba(0, 0, 0, 0.12)',
             position: isMobile ? 'sticky' : 'relative',
             bottom: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5
           }}>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            {showQuickReplies && (
+              <Box sx={{ mb: 1 }}>
+                <Typography sx={{ mb: 0.5, fontSize: '0.85rem', color: '#888', fontWeight: 500 }}>
+                  Common questions are:
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {quickReplies.map((reply, i) => (
+                    <Button
+                      key={i}
+                      variant="outlined"
+                      fullWidth
+                      onClick={() => handleQuickReply(reply)}
+                      disabled={!socket}
+                      sx={{
+                        borderRadius: 999,
+                        textTransform: 'none',
+                        fontWeight: 400,
+                        fontSize: '0.95rem',
+                        justifyContent: 'flex-start',
+                        bgcolor: 'white',
+                        borderColor: '#e0e0e0',
+                        color: '#222',
+                        boxShadow: 'none',
+                        px: 2.5,
+                        py: 1.2,
+                        minHeight: '36px',
+                        '&:hover': {
+                          bgcolor: '#f5f5f5',
+                          borderColor: '#bdbdbd',
+                        },
+                      }}
+                    >
+                      {reply}
+                    </Button>
+                  ))}
+                </Box>
+              </Box>
+            )}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <TextField
                 inputRef={inputRef}
                 fullWidth
                 value={input}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
+                placeholder="Tell us how we can help..."
                 variant="outlined"
                 size="small"
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                  }
+                    borderRadius: 999,
+                    fontSize: '0.95rem',
+                    bgcolor: '#fafafa',
+                    paddingRight: 0,
+                  },
+                  '& input': {
+                    padding: '10px 16px',
+                  },
+                  flex: 1
                 }}
               />
-              <Button
-                variant="contained"
+              <IconButton
+                color="primary"
                 onClick={handleSend}
                 disabled={!input.trim()}
                 sx={{
-                  bgcolor: '#8B5CF6',
-                  borderRadius: 2,
-                  minWidth: 'auto',
-                  px: 3,
+                  bgcolor: '#ece9f6',
+                  borderRadius: 999,
+                  width: 40,
+                  height: 40,
+                  ml: 0.5,
                   '&:hover': {
-                    bgcolor: '#7C3AED',
+                    bgcolor: '#e0e0e0',
                   },
                   '&.Mui-disabled': {
-                    bgcolor: 'rgba(139, 92, 246, 0.5)',
+                    bgcolor: '#f3f3f3',
                   }
                 }}
               >
-                Send
-              </Button>
+                <SendIcon sx={{ fontSize: 22, color: '#8B5CF6' }} />
+              </IconButton>
             </Box>
           </Box>
         </Paper>

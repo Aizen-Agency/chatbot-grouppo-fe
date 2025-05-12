@@ -1,0 +1,77 @@
+[33mcommit eac5fd2db43d3efdd2e5869afb275eb471505d03[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Hrit99 <hritikpihal51299@gmail.com>
+Date:   Sun May 11 17:49:36 2025 +0530
+
+    typing animation
+
+[33mcommit 6d0c517d60452b5e8afbc354f9e8ef172b831423[m
+Author: hrit99 <hritikpihal51299@gmail.com>
+Date:   Mon May 5 20:57:38 2025 +0530
+
+    Removed control icons
+
+[33mcommit 85adfca09356e0a7a43d5f1b7772bef39df6349d[m
+Author: hrit99 <hritikpihal51299@gmail.com>
+Date:   Mon May 5 20:49:22 2025 +0530
+
+    Removed control icons
+
+[33mcommit a8f16a98a3ad9225ee85de1fbeac37142913fa6b[m
+Author: hrit99 <hritikpihal51299@gmail.com>
+Date:   Mon May 5 20:42:37 2025 +0530
+
+    Removed control icons
+
+[33mcommit d59a86a02a3821cf1722d52a06b95673c119a35b[m
+Author: hrit99 <hritikpihal51299@gmail.com>
+Date:   Mon May 5 20:28:37 2025 +0530
+
+    Removed control icons
+
+[33mcommit 099c01fc51a341a6c4af2cd0cf208e00b5c657ff[m
+Author: hrit99 <hritikpihal51299@gmail.com>
+Date:   Mon May 5 19:57:50 2025 +0530
+
+    Removed control icons
+
+[33mcommit fa0bece34f3567969ee970fd7471cf24cca7faf6[m
+Author: hrit99 <hritikpihal51299@gmail.com>
+Date:   Mon May 5 19:50:20 2025 +0530
+
+    Removed control icons
+
+[33mcommit 660b5482ba2e389e247a95cfe3abdaee29cf1d85[m
+Author: Hrit99 <hritikpihal51299@gmail.com>
+Date:   Fri May 2 23:38:07 2025 +0530
+
+    changes
+
+[33mcommit f29a8911b9a1ac54d7552f1c351faf7f17dd6d84[m
+Author: Hrit99 <hritikpihal51299@gmail.com>
+Date:   Fri May 2 23:19:34 2025 +0530
+
+    changes
+
+[33mcommit a089e4cea5c68c73b0f546bde6d63b9b568dd56d[m
+Author: Hrit99 <hritikpihal51299@gmail.com>
+Date:   Wed Apr 30 21:48:53 2025 +0530
+
+    Added session end support
+
+[33mcommit 29e111f64488e56b3a311317a0d78c4989939519[m
+Author: hritikp <hritik.pihal@oneture.com>
+Date:   Wed Apr 30 21:45:57 2025 +0530
+
+    Added session end support
+
+[33mcommit c1f0904cd35b8dad9a019cf7b70d0ee992b04755[m
+Author: hritikp <hritik.pihal@oneture.com>
+Date:   Wed Apr 30 21:17:21 2025 +0530
+
+    first commit
+
+[33mcommit 46f1cbb45df2a069c0d5dffea7b0aa456f233c76[m
+Author: hritikp <hritik.pihal@oneture.com>
+Date:   Wed Apr 30 17:41:52 2025 +0530
+
+    Initialize project using Create React App

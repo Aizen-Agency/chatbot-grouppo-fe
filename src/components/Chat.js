@@ -147,7 +147,7 @@ const Chat = () => {
   const deleteSession = async () => {
     if (socket) {
       try {
-        await axios.delete(`https://vangelis-1d9a0def0dc8.herokuapp.com/api/sessions/${socket.id}`);
+        await axios.delete(`https://vangelis-be-72a501737d30.herokuapp.com/api/sessions/${socket.id}`);
       } catch (error) {
         console.error('Error deleting session:', error);
       }
@@ -155,7 +155,7 @@ const Chat = () => {
   };
 
   useEffect(() => {
-    const newSocket = io('https://vangelis-1d9a0def0dc8.herokuapp.com', {
+    const newSocket = io('https://vangelis-be-72a501737d30.herokuapp.com', {
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });

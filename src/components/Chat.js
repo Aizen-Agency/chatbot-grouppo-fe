@@ -10,6 +10,8 @@ import SendIcon from '@mui/icons-material/Send';
 import LinkIcon from '@mui/icons-material/Link';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PauseIcon from '@mui/icons-material/Pause';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 const quickReplies = [
   'Θέλω να σχεδιάσω κουζίνα',
@@ -45,47 +47,57 @@ const TypingIndicator = () => {
         gap: 0.5,
       }}
     >
-      <Typography>typing</Typography>
+      <Typography sx={{ fontSize: '0.75rem', fontWeight: 400 }}>typing</Typography>
       <Typography sx={{ minWidth: '24px' }}>{dots}</Typography>
     </Box>
   );
 };
 
-// Add TypedMessage component for letter-by-letter animation
-const TypedMessage = ({ content, forceShow }) => {
+// Modify TypedMessage component
+const TypedMessage = ({ content, forceShow, onTypingComplete }) => {
   const [displayedContent, setDisplayedContent] = useState(forceShow ? content : '');
   const [isTyping, setIsTyping] = useState(!forceShow);
   const indexRef = useRef(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     if (forceShow) {
       setDisplayedContent(content);
       setIsTyping(false);
+      onTypingComplete?.();
       return;
     }
-    if (indexRef.current < content.length) {
+
+    if (indexRef.current < content.length && !isPaused) {
       const timer = setTimeout(() => {
         setDisplayedContent(prev => prev + content[indexRef.current]);
         indexRef.current += 1;
       }, 30);
       return () => clearTimeout(timer);
-    } else {
+    } else if (indexRef.current >= content.length) {
       setIsTyping(false);
+      onTypingComplete?.();
     }
-  }, [displayedContent, content, forceShow]);
-
-  useEffect(() => {
-    if (forceShow) {
-      setDisplayedContent(content);
-      setIsTyping(false);
-    }
-  }, [forceShow, content]);
+  }, [displayedContent, content, forceShow, isPaused, onTypingComplete]);
 
   return (
-    <Typography>
-      {displayedContent}
-      {isTyping && <span className="cursor">|</span>}
-    </Typography>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography sx={{ fontSize: '0.75rem', fontWeight: 400 }}>
+        {displayedContent}
+      </Typography>
+      {/* {!forceShow && (
+        <IconButton 
+          size="small" 
+          onClick={() => setIsPaused(!isPaused)}
+          sx={{ 
+            color: isPaused ? '#8B5CF6' : '#888',
+            '&:hover': { color: '#7C3AED' }
+          }}
+        >
+          {isPaused ? <PlayArrowIcon /> : <PauseIcon />}
+        </IconButton>
+      )} */}
+    </Box>
   );
 };
 
@@ -164,6 +176,9 @@ const Chat = () => {
   const [initialWindowHeight] = useState(window.innerHeight);
   const inputRef = useRef(null);
   const [lastAnimatedBotMsgIndex, setLastAnimatedBotMsgIndex] = useState(null);
+  const [isTypingResponse, setIsTypingResponse] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [savedSession, setSavedSession] = useState(null);
 
   // Use the custom hook instead of local state
   const isMobile = useHostViewport();
@@ -171,7 +186,38 @@ const Chat = () => {
   const deleteSession = async () => {
     if (socket) {
       socket.emit('deleteSession', { sessionId: socket.id });
+      socket.close();
+      setSocket(null);
+      setSessionEnded(true);
+      setIsMinimized(true);
+      setSavedSession(null);
     }
+  };
+
+  const startNewSession = () => {
+    window.location.reload();
+  };
+
+  const handleMinimize = () => {
+    if (!sessionEnded) {
+      setSavedSession({
+        messages,
+        showQuickReplies,
+        socket
+      });
+    }
+    setIsMinimized(true);
+  };
+
+  const handleMaximize = () => {
+    if (sessionEnded) {
+      startNewSession();
+    } else if (savedSession) {
+      setMessages(savedSession.messages);
+      setShowQuickReplies(savedSession.showQuickReplies);
+      setSocket(savedSession.socket);
+    }
+    setIsMinimized(false);
   };
 
   useEffect(() => {
@@ -196,6 +242,8 @@ const Chat = () => {
 
     newSocket.on('response', (data) => {
       console.log('Received assistant response:', data.message);
+      setIsTypingResponse(true);
+      setIsPaused(false);
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     });
 
@@ -344,12 +392,12 @@ const Chat = () => {
         Lucca
       </Typography>
       <Box sx={{ display: 'flex', gap: 1.2, ml: 'auto' }}>
-        {/* Minimize/Maximize control */}
-        <IconButton size="small" onClick={() => setIsMinimized(true)} sx={{ color: '#888' }}>
+        {/* Minimize control */}
+        <IconButton size="small" onClick={handleMinimize} sx={{ color: '#888' }}>
           <RemoveIcon fontSize="small" />
         </IconButton>
         {/* Delete session and minimize */}
-        <IconButton size="small" onClick={async () => { await deleteSession(); setIsMinimized(true); setSessionEnded(true); }} sx={{ color: '#888' }}>
+        <IconButton size="small" onClick={deleteSession} sx={{ color: '#888' }}>
           <DeleteIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -365,14 +413,7 @@ const Chat = () => {
           right: 20,
           zIndex: 1300,
         }}
-        onClick={async () => {
-          if (sessionEnded) {
-            setMessages([initialBotMessage]);
-            setShowQuickReplies(true);
-            setSessionEnded(false);
-          }
-          setIsMinimized(false);
-        }}
+        onClick={handleMaximize}
         style={{ cursor: 'pointer' }}
       >
         <Fab
@@ -485,9 +526,18 @@ const Chat = () => {
                         <img src="/agent_bot.jpg" alt="Assistant Icon" style={{ width: 28, height: 28, marginTop: 2, borderRadius: '50%' }} />
                       )}
                       {message.role === 'assistant'
-                        ? (isTyping && isLastAssistantMessage
-                            ? <TypedMessage content={message.content} forceShow={false} />
-                            : <Typography sx={{ fontSize:  '0.75rem', fontWeight: isInitialBotMessage ? 500 : 400 }}>{message.content}</Typography>
+                        ? (isLastAssistantMessage && isTypingResponse
+                            ? <TypedMessage 
+                                content={message.content} 
+                                forceShow={false} 
+                                onTypingComplete={() => {
+                                  setIsTypingResponse(false);
+                                  setIsTyping(false);
+                                }}
+                              />
+                            : <Typography sx={{ fontSize: '0.75rem', fontWeight: isInitialBotMessage ? 500 : 400 }}>
+                                {message.content}
+                              </Typography>
                           )
                         : <Typography sx={{ fontSize: '0.75rem' }}>{message.content}</Typography>
                       }
@@ -606,7 +656,7 @@ const Chat = () => {
               <Button
                 variant="contained"
                 onClick={handleSend}
-                disabled={!input.trim()}
+                disabled={!input.trim() || isTypingResponse}
                 sx={{
                   minWidth: 64,
                   height: 40,

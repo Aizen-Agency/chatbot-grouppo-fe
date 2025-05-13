@@ -565,7 +565,7 @@ const Chat = () => {
             flexDirection: 'column',
             gap: 1.5
           }}>
-            {/* Chatbot logo above input */}
+            {/* Chatbotlogo above input */}
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
               <a href="http://agenty.tech" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                 <img src="/chatbot_logo.png" alt="Chatbot Logo" style={{ height: 18, width: 'auto', display: 'block' }} />

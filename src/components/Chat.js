@@ -195,7 +195,64 @@ const Chat = () => {
   };
 
   const startNewSession = () => {
-    window.location.reload();
+    // Reset all state
+    setMessages([initialBotMessage]);
+    setShowQuickReplies(true);
+    setSessionEnded(false);
+    setIsMinimized(false);
+    setSavedSession(null);
+    setInput('');
+    setIsTyping(false);
+    setIsTypingResponse(false);
+    setLastAnimatedBotMsgIndex(null);
+    setIsPaused(false);
+    setError(null);
+
+    // Create new socket connection
+    const newSocket = io('https://vangelis-be-72a501737d30.herokuapp.com', {
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    setSocket(newSocket);
+
+    newSocket.on('connect', () => { 
+      setIsLoading(false);
+      newSocket.emit('startChat');
+      console.log('Socket connected:', newSocket.id);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      setError('Failed to connect to the server. Please try again later.');
+      setIsLoading(false);
+      console.error('Socket connection error:', error);
+    });
+
+    newSocket.on('response', (data) => {
+      console.log('Received assistant response:', data.message);
+      setIsTypingResponse(true);
+      setIsPaused(false);
+      setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+    });
+
+    newSocket.on('typing', (data) => {
+      if (data.sessionId === 'assistant') {
+        setIsTyping(true);
+      }
+      console.log('Received typing event:', data);
+    });
+
+    newSocket.on('stopTyping', (data) => {
+      if (data.sessionId === 'assistant') {
+        setIsTyping(false);
+      }
+      console.log('Received stopTyping event:', data);
+    });
+
+    newSocket.on('error', (data) => {
+      setError(data.message || 'An error occurred');
+      console.error('Socket error event:', data);
+    });
   };
 
   const handleMinimize = () => {
@@ -389,7 +446,7 @@ const Chat = () => {
       }}
     >
       <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#222' }}>
-        Lucca
+      Grouppo IO
       </Typography>
       <Box sx={{ display: 'flex', gap: 1.2, ml: 'auto' }}>
         {/* Minimize control */}

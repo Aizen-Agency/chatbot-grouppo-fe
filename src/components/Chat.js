@@ -61,6 +61,10 @@ const TypedMessage = ({ content, forceShow, onTypingComplete }) => {
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
+    // Reset index when content changes
+    indexRef.current = 0;
+    setDisplayedContent('');
+    
     if (forceShow) {
       setDisplayedContent(content);
       setIsTyping(false);
@@ -68,17 +72,26 @@ const TypedMessage = ({ content, forceShow, onTypingComplete }) => {
       return;
     }
 
-    if (indexRef.current < content.length && !isPaused) {
-      const timer = setTimeout(() => {
-        setDisplayedContent(prev => prev + content[indexRef.current]);
+    const typeNextCharacter = () => {
+      if (indexRef.current < content.length && !isPaused) {
+        setDisplayedContent(prev => content.substring(0, indexRef.current + 1));
         indexRef.current += 1;
-      }, 30);
-      return () => clearTimeout(timer);
-    } else if (indexRef.current >= content.length) {
-      setIsTyping(false);
-      onTypingComplete?.();
+        
+        // Schedule next character
+        setTimeout(typeNextCharacter, 30);
+      } else if (indexRef.current >= content.length) {
+        setIsTyping(false);
+        onTypingComplete?.();
+      }
+    };
+
+    // Start typing animation
+    if (!isPaused) {
+      typeNextCharacter();
     }
-  }, [displayedContent, content, forceShow, isPaused, onTypingComplete]);
+    
+    return () => { /* cleanup if needed */ };
+  }, [content, forceShow, isPaused, onTypingComplete]);
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

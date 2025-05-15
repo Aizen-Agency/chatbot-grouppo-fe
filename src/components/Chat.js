@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Box, TextField, Button, Paper, Typography, Container, Alert, Snackbar, IconButton, Fab } from '@mui/material';
+import { Box, TextField, Button, Paper, Typography, Container, Alert, Snackbar, IconButton, Fab, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import io from 'socket.io-client';
 import LoadingSpinner from './LoadingSpinner';
 import CloseIcon from '@mui/icons-material/Close';
@@ -180,6 +180,7 @@ const Chat = () => {
   const [error, setError] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -438,6 +439,19 @@ const Chat = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [initialWindowHeight, isMobile]);
 
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    deleteSession();
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+  };
+
   if (!isVisible) return null;
 
   // Header bar with controls (refined for screenshot style)
@@ -467,7 +481,7 @@ const Chat = () => {
           <RemoveIcon fontSize="small" />
         </IconButton>
         {/* Delete session and minimize */}
-        <IconButton size="small" onClick={deleteSession} sx={{ color: '#888' }}>
+        <IconButton size="small" onClick={handleDeleteClick} sx={{ color: '#888' }}>
           <DeleteIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -768,6 +782,28 @@ const Chat = () => {
             </Box>
           </Box>
         </Paper>
+        
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={handleDeleteCancel}
+          aria-labelledby="delete-dialog-title"
+          aria-describedby="delete-dialog-description"
+        >
+          <DialogTitle id="delete-dialog-title">
+            Clear Chat History
+          </DialogTitle>
+          <DialogContent id="delete-dialog-description">
+            <Typography>
+              After clearing history you won't be able to access previous chats.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDeleteCancel} variant="outlined">Cancel</Button>
+            <Button onClick={handleDeleteConfirm} variant="contained" color="error">
+              Clear Chat
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );
